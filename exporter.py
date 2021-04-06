@@ -101,26 +101,26 @@ def get_allocs(nomad_connection):
         taskgroup = alloc['TaskGroup']
         alloc_id = alloc['ID']
         eval_id = alloc['EvalID']
-
-        for t in alloc['TaskStates']:
-            event_counter = defaultdict(int)
-            for event in alloc['TaskStates'][t]['Events']:
-                event_counter[event['ExitCode']] += 1
-            for rc in event_counter:
-                allocation_exits_gauge.labels(
+        if alloc['TaskStates'] is not None:
+            for t in alloc['TaskStates']:
+                event_counter = defaultdict(int)
+                for event in alloc['TaskStates'][t]['Events']:
+                    event_counter[event['ExitCode']] += 1
+                for rc in event_counter:
+                    allocation_exits_gauge.labels(
+                        job=jobname,
+                        taskgroup=taskgroup,
+                        task=t,
+                        alloc_id=alloc_id,
+                        exitcode=rc,
+                    ).set(event_counter[rc])
+                allocation_restarts.labels(
                     job=jobname,
                     taskgroup=taskgroup,
                     task=t,
                     alloc_id=alloc_id,
-                    exitcode=rc,
-                ).set(event_counter[rc])
-            allocation_restarts.labels(
-                job=jobname,
-                taskgroup=taskgroup,
-                task=t,
-                alloc_id=alloc_id,
-                eval_id=eval_id,
-            ).set(alloc['TaskStates'][t]['Restarts'])
+                    eval_id=eval_id,
+                ).set(alloc['TaskStates'][t]['Restarts'])
 
 
 if __name__ == '__main__':
